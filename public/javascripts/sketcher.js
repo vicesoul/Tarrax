@@ -28,13 +28,12 @@ define([
 
             this.generalHTML();
             
-
             //set color and line width
             this.context.strokeStyle = "#" + this.get("color").hex;
             this.context.lineWidth = this.get("lineW");
 
             // bind mouseDown event
-            this.canvas.bind( this.mouseDownEvent, this.onCanvasMouseDown() );
+            this.canvas.on( this.mouseDownEvent, this.onCanvasMouseDown() );
             this.renderFunction = this.updateCanvasByLine;
 
             
@@ -196,20 +195,20 @@ define([
 
         onCanvasMouseDown : function () {
             var self = this;
-
+            var  nameSpace = self.defaults.sketchType
             return function(event) {
-                if( event.button == 2 )return false;        // forbidden right mouse
+
+                //  right mouse is forbidden
+                if( event.button == 2 )return false;        
 
                 self.lines.push([]);
 
-                self.mouseMoveHandler = self.onCanvasMouseMove();
-                self.mouseUpHandler = self.onCanvasMouseUp();
-
                 // unbind the event if in ie, when drawing out the canvas to select the text out of canvas, than back in canvas drawing the line always drawing
-                if ( $.browser.msie ){self.canvas.unbind( self.mouseMoveEvent);}
+                if ( $.browser.msie ){self.canvas.off( self.mouseMoveEvent + '.' + nameSpace);}
 
-                self.canvas.bind( self.mouseMoveEvent, self.mouseMoveHandler );
-                $(document).bind(self.mouseUpEvent,self.mouseUpHandler);
+                // move event bind to document, so mouse move out and in the canvas , the lines would not mess up
+                $(document).on( self.mouseMoveEvent + '.' + nameSpace, self.onCanvasMouseMove() );
+                $(document).on( self.mouseUpEvent + '.' + nameSpace, self.onCanvasMouseUp() );
 
                 self.updateMousePosition( event );
                 //self.renderFunction( event );           // click drawing
@@ -222,6 +221,7 @@ define([
             return function(event) {
 
                 self.renderFunction( event );
+
                 event.preventDefault();
                 event.stopPropagation($(this));
                 return false;
@@ -230,10 +230,11 @@ define([
 
         onCanvasMouseUp : function (event) {
             var self = this;
+            var  nameSpace = self.defaults.sketchType
             return function(event) {
 
-                self.canvas.unbind( self.mouseMoveEvent, self.mouseMoveHandler );
-                $(document).unbind(self.mouseUpEvent,self.mouseUpHandler);
+                $(document).off( self.mouseMoveEvent + '.' + nameSpace );
+                $(document).off( self.mouseUpEvent + '.' + nameSpace );
 
             }
         },
@@ -265,10 +266,9 @@ define([
 
         updateCanvasByLine : function (event) {
             this.get("tools").type = "line";
+
             this.context.beginPath();
-
             this.context.moveTo( this.lastMousePoint.x, this.lastMousePoint.y );
-
             this.updateMousePosition( event );
             this.context.lineTo( this.lastMousePoint.x, this.lastMousePoint.y );
             this.context.stroke();
